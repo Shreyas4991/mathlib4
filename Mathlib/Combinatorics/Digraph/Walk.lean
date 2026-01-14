@@ -46,15 +46,9 @@ def Single {G : Digraph V} (u : V) : G.Walk where
 def head {G : Digraph V} (W : G.Walk) : V :=
   W.support.head W.non_empty_support
 
-@[simp]
-lemma head_single {G : Digraph V} (W : G.Walk) (v : V)
-  (hSingle : W = Walk.Single v) : W.head = v := by
-  rw [hSingle]
-  simp only [head, Single, List.head_cons]
-
 def cons {G : Digraph V}
   (u : V) (W : G.Walk)
-  (hAdj : G.Adj u (W.support.head W.non_empty_support))
+  (hAdj : G.Adj u W.head)
   : G.Walk where
   support :=
     match W.support with
@@ -69,7 +63,7 @@ def cons {G : Digraph V}
         simp only [List.isChain_cons_cons]
         rw [hW] at hchainW
         constructor
-        · simp_all only [List.head_cons]
+        · simp_all only [Walk.head, List.head_cons]
         · assumption
   non_empty_support := by
     cases W.support <;> simp
@@ -85,19 +79,67 @@ def tail {G : Digraph V} (W : G.Walk) (hW : W.support.length ≥ 2) : G.Walk whe
     | cons head tail =>
         cases htail : tail with (simp_all)
 
+@[simp]
+lemma head_single {G : Digraph V} (W : G.Walk) (v : V)
+  (hSingle : W = Walk.Single v) : W.head = v := by
+  rw [hSingle]
+  simp only [head, Single, List.head_cons]
+
+@[simp]
+lemma head_cons_eq {G : Digraph V}
+  (W : G.Walk) (v : V) (hadj : G.Adj v W.head) :
+  (Walk.cons v W hadj).head = v := by
+  simp only [head]
+  cases h : W.support with (simp only [cons, h, List.head_cons])
+
+@[simp]
+lemma Walk_length_two_decompose {G : Digraph V}
+  (W : G.Walk) (hW : W.support.length ≥ 2) :
+  ∃ v w : V, ∃ rest : List V, W.support = v :: w :: rest := by
+  match h : W.support with
+  | [] =>
+      have : W.support.length = 0 := by
+        simp_all
+      exfalso
+      omega
+  | [v] =>
+      have : W.support.length = 1 := by
+        simp_all
+      exfalso
+      omega
+  | v :: w :: rest =>
+      use v, w, rest
+
+
+
+@[simp]
 lemma cons_support_eq_support_cons {G : Digraph V}
-  (W : G.Walk) (v : V) (G.)
-lemma Walk_Adj_head {G : Digraph V} (W : G.Walk) (v : V) (hW : W.support.length ≥ 2):
-  G.Adj v ((W.tail hW).support.head (W.tail hW).non_empty_support) := by
-  sorry
+  (W : G.Walk) (v : V) (hadj : G.Adj v W.head) :
+  (Walk.cons v W hadj).support = v :: W.support := by
+  simp only [cons]
+  cases W.support with (simp only)
+
+lemma Walk_Adj_head {G : Digraph V} (W : G.Walk)
+  (hW : W.support.length ≥ 2) :
+  G.Adj W.support[0] ((W.tail hW).support.head (W.tail hW).non_empty_support) := by
+  apply Walk_length_two_decompose at hW
+  obtain ⟨v, w, rest, hW⟩ := hW
+  simp [tail, hW]
+  have chain := W.chainAdj
+  rw [hW] at chain
+  simp at chain
+  tauto
+
 
 lemma Walk_is_cons_of_head_tail {G : Digraph V}
-  (W : G.Walk) (hW : W.support.length ≥ 2)
-  (v : V) : W = Walk.cons v (W.tail hW) (by apply Walk_Adj_head) := by
-  simp only [tail]
-
-  sorry
-
+  (W : G.Walk) (hW : W.support.length ≥ 2) :
+  W = Walk.cons W.support[0] (W.tail hW) (by apply Walk_Adj_head)  := by
+  apply Walk.Walk_length_two_decompose at hW
+  obtain ⟨v, w, rest, hW⟩ := hW
+  have adj := W.chainAdj
+  simp[hW] at adj
+  ext i v
+  simp_all only [List.getElem_cons_zero, tail, List.tail_cons, cons_support_eq_support_cons]
 
 def IsCircuit {G : Digraph V} (W : G.Walk) : Prop :=
   W.support.length > 2 ∧ W.support.head = W.support.getLast
@@ -304,10 +346,10 @@ lemma cons_induction {G : Digraph V}
               exact h₁.left
             specialize ind head Wtail s₄ s₅
             have s₆ : W = Walk.cons head Wtail s₅ := by
-              simp [Wtail, Walk.tail]
-
-
-
+              have h₁ : head = W.support[0] := by
+                simp_all only [List.getElem_cons_zero]
+              simp_rw [h₁]
+              apply Walk.Walk_is_cons_of_head_tail
             rw [s₆]
             exact ind
 
@@ -317,7 +359,8 @@ lemma append_induction {G : Digraph V}
   (ind : (W : G.Walk) → (v : V)
       → motive W → (hadj : G.Adj W.endsAt v)
       → motive (Walk.appendByEdge W (Walk.Single v) hadj)) : (W : G.Walk) → motive W := by
-    sorry
+
+  sorry
 end Walk
 
 structure Path (G : Digraph V) extends Walk G where
