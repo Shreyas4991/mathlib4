@@ -358,9 +358,30 @@ lemma append_induction {G : Digraph V}
   (base : (v : V) → motive ⟨[v], by simp, List.IsChain.singleton v⟩)
   (ind : (W : G.Walk) → (v : V)
       → motive W → (hadj : G.Adj W.endsAt v)
-      → motive (Walk.appendByEdge W (Walk.Single v) hadj)) : (W : G.Walk) → motive W := by
+      → motive (Walk.appendByEdge W (Walk.Single v) hadj)) (W : G.Walk) : motive W := by
+  induction hW : W.support generalizing W with
+  | nil =>
+      exfalso
+      exact W.non_empty_support hW
+  | cons head tail ih =>
+    cases tail with
+    | nil =>
+        specialize base head
+        have s₁ : W = {
+            support := [head],
+            non_empty_support := by simp
+            chainAdj := by simp } := by
+          ext
+          simp_all
+        rw [s₁]
+        exact base
+    | cons thead ttail =>
+        let Wtail := W.tail (by simp[hW])
+        specialize ih Wtail (by simp [Wtail, tail, hW])
+        
+        sorry
 
-  sorry
+
 end Walk
 
 structure Path (G : Digraph V) extends Walk G where
