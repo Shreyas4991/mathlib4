@@ -142,7 +142,7 @@ lemma Walk_is_cons_of_head_tail {G : Digraph V}
   simp_all only [List.getElem_cons_zero, tail, List.tail_cons, cons_support_eq_support_cons]
 
 def IsCircuit {G : Digraph V} (W : G.Walk) : Prop :=
-  W.support.length > 2 ∧ W.support.head = W.support.getLast
+  W.support.length > 2 ∧ G.Adj W.support.head W.support.getLast
 
 def edgeList {G : Digraph V} (W : G.Walk) : List <| V × V :=
   match hW : W.support with
@@ -378,7 +378,7 @@ lemma append_induction {G : Digraph V}
     | cons thead ttail =>
         let Wtail := W.tail (by simp[hW])
         specialize ih Wtail (by simp [Wtail, tail, hW])
-        
+
         sorry
 
 
